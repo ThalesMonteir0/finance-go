@@ -4,12 +4,13 @@ import (
 	"context"
 	"github.com/gin-gonic/gin"
 	"gofinance/dto/filters"
+	"gofinance/dto/transaction"
 	"mime/multipart"
 	"net/http"
 )
 
 type readStatementUseCase interface {
-	Execute(ctx context.Context, file multipart.File, filters filters.Filter) error
+	Execute(ctx context.Context, file multipart.File, filters filters.Filter) (*transaction.TransactionsResponse, error)
 }
 type Controller struct {
 	readStatementUC readStatementUseCase
@@ -50,10 +51,11 @@ func (co *Controller) ReceiveStatementPDF(c *gin.Context) {
 		return
 	}
 
-	if err = co.readStatementUC.Execute(ctx, file, filter); err != nil {
+	transactions, err := co.readStatementUC.Execute(ctx, file, filter)
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, "ok")
+	c.JSON(http.StatusOK, transactions)
 }

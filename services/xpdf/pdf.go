@@ -31,24 +31,25 @@ func (s *Service) Read(path string) (io.Reader, error) {
 	return reader, err
 }
 
-func (s *Service) ParseItauStatement(reader io.Reader, filters filters.Filter) ([]transaction.Transaction, error) {
+func (s *Service) ParseItauStatement(reader io.Reader, filters filters.Filter) ([]transaction.Transaction, float64, error) {
 	linesString, err := io.ReadAll(reader)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
 	lines := strings.Split(string(linesString), "\n")
 
 	startDt, err := time.Parse("02/01/2006", filters.StartDate)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	endDt, err := time.Parse("02/01/2006", filters.EndDate)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
 	var transactions []transaction.Transaction
+	var TotalAmountOut float64
 
 	for i := 0; i < len(lines)-2; i++ {
 		line := strings.TrimSpace(lines[i])
@@ -63,7 +64,7 @@ func (s *Service) ParseItauStatement(reader io.Reader, filters filters.Filter) (
 
 		date, err := time.Parse("02/01/2006", line)
 		if err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 
 		if date.Before(startDt) || date.After(endDt) {
@@ -89,6 +90,15 @@ func (s *Service) ParseItauStatement(reader io.Reader, filters filters.Filter) (
 			continue
 		}
 
+		matchedDev, err := regexp.MatchString(`(?i)DEV PIX`, description)
+		if err != nil {
+			continue
+		}
+
+		if amount < 0 || matchedDev {
+			TotalAmountOut += amount
+		}
+
 		txType := "IN"
 		if amount < 0 {
 			txType = "OUT"
@@ -102,5 +112,5 @@ func (s *Service) ParseItauStatement(reader io.Reader, filters filters.Filter) (
 		})
 	}
 
-	return transactions, nil
+	return transactions, TotalAmountOut, nil
 }
