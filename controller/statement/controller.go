@@ -31,12 +31,12 @@ func (co *Controller) ReceiveStatementPDF(c *gin.Context) {
 	}
 
 	var filter filters.Filter
-	startDate, ok := c.GetQuery("startDate")
+	startDate, ok := c.GetQuery("start_date")
 	if !ok {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "startDate is required"})
 		return
 	}
-	endDate, ok := c.GetQuery("endDate")
+	endDate, ok := c.GetQuery("end_date")
 	if !ok {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "endDate is required"})
 		return
